@@ -1,6 +1,7 @@
 using System.Text;
 using API.Data;
 using API.Interfaces;
+using API.Middleware;
 using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 // builder.Services.AddOpenApi();
 
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -48,6 +50,8 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection(); // Enforce HTTPS redirection for all requests. This means that any HTTP request will be automatically redirected to its HTTPS equivalent.
 
+// The error middleware should be first because if it catches an error it will execute the catch statement and exit the middleware and not pass values to the next middleware so it should be first
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors(options =>
 {
