@@ -24,6 +24,9 @@ builder.Services.AddCors();
 // 3) AddScoped - This will create a new instance of the service once per request
 builder.Services.AddScoped<ITokenService, TokenService>(); // Whenever we need this service in the application we will inject the ITokenService interface. According to this line, the app will know that whenever the ITokenService is injected it should use the TokenService (The service that implements the interface)
 
+// Adding the repository as a service so it will be injectable to all other classes
+builder.Services.AddScoped<IMemberRepository, MemberRepository>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
   var tokenKey = builder.Configuration["TokenKey"] ?? throw new Exception("Token key not found - Program.cs");
@@ -62,5 +65,24 @@ app.UseAuthentication(); // Asks the question - "Who are you?"
 app.UseAuthorization(); // Once we know who they are, what are they allow to do. This means that the order is important. First add the authentication middleware and only after that the authorization middleware. Otherwise it will not work
 
 app.MapControllers();
+
+///// Seeding the data //////
+// In the Program class we cannot use dependency injection to get a hold on the DbContext so we will use a different approach which is called 'The service locator pattern':
+// Has to be before the app.Run method. Nothing will be executed after that method!
+// Creating a scope in which we will run the service. In this case - the AppDbContext - in order to have access to the DB.
+using var scope = app.Services.CreateScope();
+var services = scope.ServiceProvider;
+try
+{
+  var context = services.GetRequiredService<AppDbContext>(); // Getting the AppDbContext service to gain access to the DB
+  // Migrating the database in code:
+  await context.Database.MigrateAsync(); // The MigrateAsync method applies any pending migrations for the context to the database. If there is no DB, it will be automatically created.
+  await Seed.SeedUsers(context);
+}
+catch (Exception ex)
+{
+  var logger = services.GetRequiredService<ILogger<Program>>();
+  logger.LogError(ex, "An error occured during migration");
+}
 
 app.Run();

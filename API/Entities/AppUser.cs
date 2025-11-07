@@ -6,8 +6,12 @@ public class AppUser
   public string Id { get; set; } = Guid.NewGuid().ToString();
     public required string DisplayName { get; set; }
     public required string Email { get; set; }
+    public string? ImageUrl { get; set; }
     public required byte[] PasswordHash { get; set; } // Sqlite does not know what is byte array and will save it as blob
     public required byte[] PasswordSalt { get; set; }
+
+  // Navigation property
+  public Member Member { get; set; } = null!;
 }
 // After any change in an Entity class we have to run migration in order to update the fields (columns) in our DB
 // Migration is executed by the following command: dotnet ef migrations add <migration name>
