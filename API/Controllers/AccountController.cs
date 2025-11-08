@@ -47,7 +47,7 @@ public class AccountController(AppDbContext context, ITokenService tokenService)
   }
 
   [HttpPost("login")]
-  public async Task<ActionResult<UserDTO>> Login(LoginDTO loginDTO) // Note that when sending an object the API controller will search at the body of the request. If we want to send a body but look atthe query string we need to specify it using the [FromQuery] notation before the object. Will look like this: Login([FromQuery]LoginDTO loginDTO). The other way around is also possible. If we want to pass strings but get the data from the body we could use [FromBody]
+  public async Task<ActionResult<UserDTO>> Login(LoginDTO loginDTO) // Note that when sending an object the API controller will search at the body of the request. If we want to send a body but look at the query string we need to specify it using the [FromQuery] notation before the object. Will look like this: Login([FromQuery]LoginDTO loginDTO). The other way around is also possible. If we want to pass strings but get the data from the body we could use [FromBody]
   {
     // There are a lot more options depending on the developer's needs - FirstOrDefaultAsync, LastOrDefaultAsync - which we can also use. Need to read the descriptions of each option to select the best one
     var user = await context.Users.SingleOrDefaultAsync(x => x.Email == loginDTO.Email);

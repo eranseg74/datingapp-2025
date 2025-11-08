@@ -1,8 +1,8 @@
 <app-nav />
 <!-- The styling defined in the div should be applied to all pages that are not the home page. We do not want the home page to apply these style rules so we cannot use 'class="mt-24 container mx-auto"' because this will apply to all pages -->
-<!-- In case we want to define a specific css features for a specific route we need to use the ngClass attribute as follows. The line below will cause the browser to implement these css properties only if it is the Home page ('/') -->
+<!-- In case we want to define a specific css features for a specific route we need to use the ngClass attribute as follows. The line below will cause the browser to implement these css properties only if it is not the Home page ('/') -->
 <!-- Keep in mind that the Router class would have to be injected in the app.ts file, to a protected parameter, in order to be able to use it here -->
-<!-- The div belowis another option for writing without using the ngClass attribute. It is the same as: <div [ngClass]="{ 'mt-24 container mx-auto': !(router.url === '/') }"> -->
+<!-- The div below is another option for writing without using the ngClass attribute. It is the same as: <div [ngClass]="{ 'mt-24 container mx-auto': !(router.url === '/') }"> -->
 <div
   [class.mt-24]="router.url !== '/'"
   [class.container]="router.url !== '/'"
