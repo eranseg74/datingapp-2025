@@ -1,4 +1,7 @@
+using System.Security.Claims;
+using API.DTOs;
 using API.Entities;
+using API.Extensions;
 using API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +35,36 @@ namespace API.Controllers
         {
             return Ok(await memberRepository.GetPhotosForMemberAsync(id));
         }
-    }
 
+        [HttpPut]
+        // Not specifying a type in the action result means that we are not actually returning anything
+        public async Task<ActionResult> UpdateMember(MemberUpdateDTO memberUpdateDTO)
+        {
+            var memberId = User.GetMemberId();
+            // No need to check because we generate the token so we knoe that there will be a token to extract the member id from
+            // if (memberId == null)
+            // {
+            //     return BadRequest("Oops - no id found in token");
+            // }
+            var member = await memberRepository.GetMemberForUpdate(memberId);
+            if (member == null)
+            {
+                return BadRequest("Could not get member");
+            }
+            member.DisplayName = memberUpdateDTO.DisplayName ?? member.DisplayName;
+            member.Description = memberUpdateDTO.Description ?? member.Description;
+            member.City = memberUpdateDTO.City ?? member.City;
+            member.Country = memberUpdateDTO.Country ?? member.Country;
+            member.User.DisplayName = memberUpdateDTO.DisplayName ?? member.User.DisplayName;
+
+            // This method just turns the state of the member as modifies. This means that even if there are no changes the state will still be changed to modified. This is good because otherwise, when we will save the changes, the controller will return a BadRequest saying that no changes where made to the object which is true. Updating the state to modified in all cases helps us avoid the BadRequest even if the new values in the update request are exactly the same as the values in the current member object
+            memberRepository.Update(member); // Optional
+
+            if (await memberRepository.SaveAllAsync())
+            {
+                return NoContent();
+            }
+            return BadRequest("Failed to update member");
+        }
+    }
 }

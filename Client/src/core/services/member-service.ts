@@ -1,7 +1,8 @@
 import { HttpClient /* HttpHeaders */ } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { Member, Photo } from '../../types/member';
+import { EditableMember, Member, Photo } from '../../types/member';
+import { tap } from 'rxjs';
 // import { AccountService } from './account-service';
 
 @Injectable({
@@ -11,6 +12,8 @@ export class MemberService {
   private http = inject(HttpClient);
   // private accountService = inject(AccountService);
   private baseUrl = environment.apiUrl;
+  editMode = signal(false);
+  member = signal<Member | null>(null);
 
   getMembers() {
     // return an Observable of the HttpResponse, with a response body in the requested type
@@ -22,7 +25,12 @@ export class MemberService {
   getMember(id: string) {
     // No need for the call with the options because of the jwtInterceptor.
     // return this.http.get<Member>(this.baseUrl + 'members/' + id, this.getHttpOptions());
-    return this.http.get<Member>(this.baseUrl + 'members/' + id);
+    return this.http.get<Member>(this.baseUrl + 'members/' + id).pipe(
+      tap((member) => {
+        // In addition of returning the member we use the pipe to set the member (signal) so we can use it to update different parts of the member data in the UI so all of the member's properties in the profile and in the navigation bar can be updated immediately
+        this.member.set(member);
+      })
+    );
   }
 
   // No need for the call with the options because of the jwtInterceptor.
@@ -36,5 +44,9 @@ export class MemberService {
   // }
   getMemberPhotos(id: string) {
     return this.http.get<Photo[]>(this.baseUrl + 'members/' + id + '/photos');
+  }
+
+  updateMember(member: EditableMember) {
+    return this.http.put(this.baseUrl + 'members', member);
   }
 }

@@ -6,9 +6,17 @@ namespace API.Data;
 
 public class MemberRepository(AppDbContext context) : IMemberRepository
 {
+  // Getting a member by id. This method will return null if the member is not found. The returned member will not include related entities such as photos or User
   public async Task<Member?> GetMembeByIdAsync(string id)
   {
     return await context.Members.FindAsync(id); // If the user is not found this will return null
+  }
+
+  // The GetMemberForUpdate will include the User entity as well which is needed when updating the member because we might need to update properties in the User entity as well.
+  // We still keep the GetMember method also because the FindAsync function is most effective for getting data from the DB, so , unless we need the photos or User we will prefer to use the FindAsync function
+  public async Task<Member?> GetMemberForUpdate(string id)
+  {
+    return await context.Members.Include(x => x.User).SingleOrDefaultAsync(x => x.Id == id);
   }
 
   public async Task<IReadOnlyList<Member>> GetMembersAsync()
@@ -29,6 +37,7 @@ public class MemberRepository(AppDbContext context) : IMemberRepository
     return await context.SaveChangesAsync() > 0; // The SaveChangesAsync returns a list of all the changes so we are returning if it is greater than 0 which means that at least one change occured
   }
 
+  // Note that using this function will set the entity state to modified even if the updating properties are identical to the original values, so the SaveChangesAsync above will return true even if there are no changes
   public void Update(Member member)
   {
     context.Entry(member).State = EntityState.Modified; // Updating the tracking of the entity in order to say that something was modified
