@@ -1,5 +1,6 @@
 using System.Text;
 using API.Data;
+using API.Helpers;
 using API.Interfaces;
 using API.Middleware;
 using API.Services;
@@ -23,10 +24,14 @@ builder.Services.AddCors();
 // 2) AddTransient - This will create a new instance of the service for every single request. This might be too much because we might use this service several times in the same request
 // 3) AddScoped - This will create a new instance of the service once per request
 builder.Services.AddScoped<ITokenService, TokenService>(); // Whenever we need this service in the application we will inject the ITokenService interface. According to this line, the app will know that whenever the ITokenService is injected it should use the TokenService (The service that implements the interface)
-
+builder.Services.AddScoped<IPhotoService, PhotoService>();
 // Adding the repository as a service so it will be injectable to all other classes
 builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 
+// Cloudinary settings injection. Be careful to match the section name with the appsettings.json file
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+
+// Adding the authentication scheme
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
   var tokenKey = builder.Configuration["TokenKey"] ?? throw new Exception("Token key not found - Program.cs");

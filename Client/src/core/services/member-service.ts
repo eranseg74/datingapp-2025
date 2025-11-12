@@ -49,4 +49,20 @@ export class MemberService {
   updateMember(member: EditableMember) {
     return this.http.put(this.baseUrl + 'members', member);
   }
+
+  uploadPhoto(file: File) {
+    // Uplading a file requires a form data and not JSON (remember postman)
+    const formData = new FormData();
+    formData.append('file', file); // The name has to match the key
+    return this.http.post<Photo>(this.baseUrl + 'members/add-photo', formData);
+  }
+
+  setMainPhoto(photo: Photo) {
+    // Because it is a put request we have to specify the put proerties as an object in the second parameter. If no properties are required - add an empty object
+    return this.http.put(this.baseUrl + 'members/set-main-photo/' + photo.id, {});
+  }
+
+  deletePhoto(photoId: number) {
+    return this.http.delete(this.baseUrl + 'members/delete-photo/' + photoId);
+  }
 }

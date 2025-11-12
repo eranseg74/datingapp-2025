@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers
 {
     [Authorize] // Defining an attribute above the class will enforce the attribute on all endpoints. Note! If we define [Authorized] in the class level we can exclude a certain endpoint by defining it as [AllowAnonymous]. It is not possible to define [AllowAnonymous] on the class level and put [Authorized] on a certain endpoint
-    public class MembersController(IMemberRepository memberRepository) : BaseAPIController
+    public class MembersController(IMemberRepository memberRepository, IPhotoService photoService) : BaseAPIController
     {
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<Member>>> GetMembers()
@@ -65,6 +65,80 @@ namespace API.Controllers
                 return NoContent();
             }
             return BadRequest("Failed to update member");
+        }
+
+        [HttpPost("add-photo")]
+        public async Task<ActionResult<Photo>> AddPhoto([FromForm] IFormFile file)
+        {
+            var member = await memberRepository.GetMemberForUpdate(User.GetMemberId());
+            if (member == null)
+            {
+                return BadRequest("Cannot update member");
+            }
+            var result = await photoService.UploadPhotoAsync(file);
+            if (result.Error != null) // The result.Error comes from the error mechanism of Cloudinary which also provides decriptive messages that we can use
+            {
+                return BadRequest(result.Error.Message);
+            }
+            var photo = new Photo
+            {
+                Url = result.SecureUrl.AbsoluteUri,
+                PublicId = result.PublicId,
+                MemberId = User.GetMemberId()
+            };
+            if (member.ImageUrl == null)
+            {
+                member.ImageUrl = photo.Url;
+                member.User.ImageUrl = photo.Url;
+            }
+            member.Photos.Add(photo);
+            if (await memberRepository.SaveAllAsync())
+            {
+                return photo;
+            }
+            return BadRequest("Problem adding photo");
+        }
+
+        [HttpPut("set-main-photo/{photoId}")]
+        public async Task<ActionResult> SetMainPhoto(int photoId)
+        {
+            var member = await memberRepository.GetMemberForUpdate(User.GetMemberId());
+            if (member == null) return BadRequest("Cannot get member from token");
+            var photo = member.Photos.SingleOrDefault(x => x.Id == photoId);
+            if (member.ImageUrl == photo?.Url || photo == null)
+            {
+                return BadRequest("Cannot set this as main image");
+            }
+            member.ImageUrl = photo.Url;
+            member.User.ImageUrl = photo.Url;
+            if (await memberRepository.SaveAllAsync()) return NoContent(); // Returns 204 - Ok + no further info is required
+            return BadRequest("Problem setting main photo");
+        }
+
+        [HttpDelete("delete-photo/{photoId}")]
+        public async Task<ActionResult> DeletePhoto(int photoId)
+        {
+            var member = await memberRepository.GetMemberForUpdate(User.GetMemberId());
+            if (member == null) return BadRequest("Cannot get member from token");
+            var photo = member.Photos.SingleOrDefault(x => x.Id == photoId);
+            if (photo == null || member.ImageUrl == photo.Url)
+            {
+                return BadRequest("Cannot delete this photo");
+            }
+            if (photo.PublicId != null)
+            {
+                var result = await photoService.DeletePhotoAsync(photo.PublicId);
+                if (result.Error != null)
+                {
+                    return BadRequest(result.Error.Message);
+                }
+            }
+            member.Photos.Remove(photo);
+            if (await memberRepository.SaveAllAsync())
+            {
+                return Ok();
+            }
+            return BadRequest("Problem deleting the photo");
         }
     }
 }

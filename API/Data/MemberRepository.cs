@@ -16,7 +16,7 @@ public class MemberRepository(AppDbContext context) : IMemberRepository
   // We still keep the GetMember method also because the FindAsync function is most effective for getting data from the DB, so , unless we need the photos or User we will prefer to use the FindAsync function
   public async Task<Member?> GetMemberForUpdate(string id)
   {
-    return await context.Members.Include(x => x.User).SingleOrDefaultAsync(x => x.Id == id);
+    return await context.Members.Include(x => x.Photos).Include(x => x.User).SingleOrDefaultAsync(x => x.Id == id);
   }
 
   public async Task<IReadOnlyList<Member>> GetMembersAsync()
