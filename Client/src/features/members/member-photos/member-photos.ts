@@ -47,6 +47,9 @@ export class MemberPhotos implements OnInit {
         this.memberService.editMode.set(false);
         this.loading.set(false);
         this.photos.update((photos) => [...photos, photo]); // Adding the uploaded photo to the photos array
+        if (!this.memberService.member()?.imageUrl) {
+          this.setMainLocalPhoto(photo);
+        }
       },
       error: (error) => {
         console.log('Error uploading image: ', error);
@@ -58,18 +61,7 @@ export class MemberPhotos implements OnInit {
   setMainPhoto(photo: Photo) {
     this.memberService.setMainPhoto(photo).subscribe({
       next: () => {
-        const currentUser = this.accountService.currentUser();
-        if (currentUser) {
-          currentUser.imageUrl = photo.url;
-        }
-        this.accountService.setCurrentUser(currentUser as User); // We have to specify it as User in order to overcome the typescript error
-        this.memberService.member.update(
-          (member) =>
-            ({
-              ...member,
-              imageUrl: photo.url,
-            } as Member) // We have to specify it as Member in order to overcome the typescript error
-        );
+        this.setMainLocalPhoto(photo);
       },
     });
   }
@@ -80,5 +72,20 @@ export class MemberPhotos implements OnInit {
         this.photos.update((photos) => photos.filter((photo) => photo.id !== photoId));
       },
     });
+  }
+
+  setMainLocalPhoto(photo: Photo) {
+    const currentUser = this.accountService.currentUser();
+    if (currentUser) {
+      currentUser.imageUrl = photo.url;
+    }
+    this.accountService.setCurrentUser(currentUser as User); // We have to specify it as User in order to overcome the typescript error
+    this.memberService.member.update(
+      (member) =>
+        ({
+          ...member,
+          imageUrl: photo.url,
+        } as Member) // We have to specify it as Member in order to overcome the typescript error
+    );
   }
 }

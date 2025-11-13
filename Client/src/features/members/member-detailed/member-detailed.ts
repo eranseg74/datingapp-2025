@@ -8,7 +8,6 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter } from 'rxjs';
-import { Member } from '../../../types/member';
 import { AgePipe } from '../../../core/pipes/age-pipe';
 import { AccountService } from '../../../core/services/account-service';
 import { MemberService } from '../../../core/services/member-service';
@@ -31,7 +30,7 @@ export class MemberDetailed implements OnInit {
   });
 
   ngOnInit(): void {
-    // Changing the source of where we are getting the member from. Form the route to the memberService
+    // Changing the source of where we are getting the member from. From the route to the memberService
     // this.route.data.subscribe({
     //   next: (data) => this.member.set(data['member']),
     // });

@@ -1,4 +1,5 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
+import { MemberService } from '../../core/services/member-service';
 
 @Component({
   selector: 'app-image-upload',

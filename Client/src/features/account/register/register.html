@@ -1,38 +1,160 @@
 <div class="card bg-base-100 w-1/2 mx-auto flex flex-col p-6 rounded-lg shadow-lg">
   <div class="card-title justify-center text-3xl text-primary">Sign up</div>
   <div class="card-body w-full">
-    <form #registerForm="ngForm" class="flex flex-col gap-4 w-full" (ngSubmit)="register()">
-      <input
-        type="text"
-        class="input w-full"
-        name="email"
-        [(ngModel)]="creds.email"
-        placeholder="Email"
-      />
-      <input
-        type="text"
-        class="input w-full"
-        name="displayName"
-        [(ngModel)]="creds.displayName"
-        placeholder="Display name"
-      />
-      <input
-        type="password"
-        class="input w-full"
-        name="password"
-        [(ngModel)]="creds.password"
-        placeholder="Password"
-      />
-      <!-- <select class="select w-full">
-        <option disabled selected>Pick a member</option>
-        @for (member of membersFromHome(); track $index) {
-        <option value="{{ member.id }}">{{ member.displayName }}</option>
-        }
-      </select> -->
+    <ul class="steps">
+      <li class="step step-primary">Credentials</li>
+      <li class="step" [class.step-primary]="currentStep() === 2">Profile</li>
+    </ul>
+    @if (currentStep() === 1) {
+    <!-- REACTIVE FORM IMPLEMENTATION -->
+    <!-- No need for (ngSubmit)="register()" in the steps implementation -->
+    <form [formGroup]="credentialsForm" class="flex flex-col gap-4 w-full steps">
+      <!-- <label class="floating-label">
+          <span>Email</span>
+          <input type="email" class="input w-full" formControlName="email" placeholder="Email" />
+        </label> -->
+      <app-text-input class="mt-2" label="Email" formControlName="email" type="email" />
+      <app-text-input label="Display name" formControlName="displayName" type="text" />
+      <app-text-input label="Password" formControlName="password" type="password" />
+      <app-text-input label="Confirm password" formControlName="confirmPassword" type="password" />
+      <!-- All of this code is replaced in the reusable text-input component we created -->
+      <!-- <label class="floating-label text-left">
+          <span>Display name</span>
+          <input
+            type="text"
+            class="input w-full"
+            [class.input-error]="
+              registerForm.controls['displayName'].invalid &&
+              registerForm.controls['displayName'].touched
+            "
+            formControlName="displayName"
+            placeholder="Display name"
+          />
+          @if (registerForm.controls['displayName'].invalid &&
+          registerForm.controls['displayName'].touched) {
+          <div class="validation-hint text-error text-xs">Display name is required</div>
+          }
+        </label> -->
+      <!-- <label class="floating-label">
+          <span>Password</span>
+          <input
+            type="password"
+            class="input w-full"
+            formControlName="password"
+            placeholder="Password"
+          />
+        </label>
+        <label class="floating-label">
+          <span>Confirm password</span>
+           -->
+      <!-- The formControlName must be exactly as defined in the initializeForm method where we defined the FormControl fields -->
+      <!--
+          <input
+            type="password"
+            class="input w-full"
+            formControlName="confirmPassword"
+            placeholder="Confirm password"
+          />
+        </label> -->
       <div class="flex items-center justify-end gap-3">
         <button (click)="cancel()" type="button" class="btn">Cancel</button>
-        <button class="btn btn-primary">Register</button>
+        <!-- Instead of type="submit" we use the butto type. The action is defined in the next step function -->
+        <button
+          [disabled]="!credentialsForm.valid"
+          (click)="nextStep()"
+          class="btn btn-primary"
+          type="button"
+        >
+          Next
+        </button>
       </div>
     </form>
+    <!-- TEMPLATE FORM IMPLEMENTATION -->
+    <!-- <form #registerForm="ngForm" class="flex flex-col gap-4 w-full" (ngSubmit)="register()">
+        <input
+          type="text"
+          class="input w-full"
+          name="email"
+          [(ngModel)]="creds.email"
+          placeholder="Email"
+        />
+        <input
+          type="text"
+          class="input w-full"
+          name="displayName"
+          [(ngModel)]="creds.displayName"
+          placeholder="Display name"
+        />
+        <input
+          type="password"
+          class="input w-full"
+          name="password"
+          [(ngModel)]="creds.password"
+          placeholder="Password"
+        /> -->
+    <!-- <select class="select w-full">
+          <option disabled selected>Pick a member</option>
+          @for (member of membersFromHome(); track $index) {
+          <option value="{{ member.id }}">{{ member.displayName }}</option>
+          }
+        </select> -->
+    <!-- <div class="flex items-center justify-end gap-3">
+          <button (click)="cancel()" type="button" class="btn">Cancel</button>
+          <button class="btn btn-primary">Register</button>
+        </div>
+      </form> -->
+    } @if (currentStep() === 2) {
+    <form [formGroup]="profileForm" class="flex flex-col w-full gap-4 steps">
+      <div class="flex items-center gap-4">
+        <div class="font-semibold">Gender:</div>
+        <label class="flex gap-3 items-center"
+          ><span>Male</span
+          ><input
+            type="radio"
+            formControlName="gender"
+            value="male"
+            class="radio radio-primary" /></label
+        ><label class="flex gap-3 items-center"
+          ><span>Female</span
+          ><input type="radio" formControlName="gender" value="female" class="radio radio-primary"
+        /></label>
+      </div>
+      <app-text-input
+        [maxDate]="getMaxDate()"
+        label="Date of Birth"
+        formControlName="dateOfBirth"
+        type="date"
+      />
+      <app-text-input label="City" formControlName="city" type="text" />
+      <app-text-input label="Country" formControlName="country" type="text" />
+      <div class="flex items-center justify-end gap-3">
+        <button (click)="prevStep()" type="button" class="btn">Back</button>
+        <!-- Instead of type="submit" we use the butto type. The action is defined in the next step function -->
+        <button
+          [disabled]="!profileForm.valid"
+          (click)="register()"
+          class="btn btn-primary"
+          type="button"
+        >
+          Register
+        </button>
+      </div>
+    </form>
+    }
   </div>
+  @if (validationErrors().length > 0) {
+  <div class="mt-5 flex bg-gray-200 rounded-2xl w-1/2 p-3 mx-auto">
+    <ul class="flex flex-col text-error space-y-1">
+      @for (error of validationErrors(); track $index) {
+      <li>{{ error }}</li>
+      }
+    </ul>
+  </div>
+  }
+  <!-- <div class="flex flex-col items-start px-3 w-full mockup-code text-lg">
+    <div>Creds value: {{ credentialsForm.value | json }}</div>
+    <div>Creds status: {{ credentialsForm.status | json }}</div>
+    <div>Profile value: {{ profileForm.value | json }}</div>
+    <div>Profile status: {{ profileForm.status | json }}</div>
+  </div> -->
 </div>
