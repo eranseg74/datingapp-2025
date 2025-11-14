@@ -1,0 +1,30 @@
+<div class="flex items-center w-full gap-3 py-3">
+  <span>Items per page:</span>
+  <!-- Passing to the onPageChange function the target event to the page size!!! and the page number as undefined so by default it will be the first page -->
+  <select class="select w-24" (change)="onPageChange(1, $event.target)">
+    @for (size of pageSizeOptions(); track $index) {
+    <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+    }
+  </select>
+  <div class="text-sm">
+    {{ (pageNumber() - 1) * pageSize() + 1 }} - {{ lastItemIndex() }} of {{ totalCount() }}
+  </div>
+  <div class="flex items-center gap-2">
+    <!-- Button for going backwards in the pagination -->
+    <button
+      class="btn btn-circle btn-ghost"
+      [disabled]="pageNumber() === 1"
+      (click)="onPageChange(pageNumber() - 1)"
+    >
+      &larr;
+    </button>
+    <!-- Button for going forwards in the pagination -->
+    <button
+      class="btn btn-circle btn-ghost"
+      [disabled]="pageNumber() >= totalPages()"
+      (click)="onPageChange(pageNumber() + 1)"
+    >
+      &rarr;
+    </button>
+  </div>
+</div>

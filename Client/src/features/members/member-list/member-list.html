@@ -1,5 +1,48 @@
+<!-- After the pagination change this will not work because we are not getting a list from the observable. Instead we are getting a paginated result that contains in it a list and metadata, so first we extract the paginated result using the async pipe and then we take the items from the paginated result and run the loop on the items list -->
+<!-- 
 <div class="grid grid-cols-5 gap-6">
   @for (member of members$ | async; track member.id) {
   <app-member-card [member]="member" />
   }
 </div>
+ -->
+<!-- Code after pagination change. In this solution the async will cause the photos to disappear when changing pages because each change will cause a request so all the photos will be removed and new photos will get loadde once they arrive from the API call. To avoid this we need to use the Observable approach and not the async pipe. That way we can tell it to keep the photos displayed and only remove them once we have the next set of photos -->
+<!-- @if (paginatedMembers$ | async; as paginatedResult) { -->
+<!-- The Observable approach implementation (change in just the first line) -->
+@if (paginatedMembers(); as paginatedResult) {
+<div class="flex flex-col w-full">
+  <div class="flex justify-between items-center">
+    <div class="flex gap-3 items-center">
+      <button (click)="openModal()" class="btn btn-primary">Select Filters</button>
+      <button (click)="resetFilters()" class="btn btn-neutral">Reset Filters</button>
+      <div class="text-lg bg-base-100 py-2 px-4 border rounded-lg text-primary capitalize">
+        {{ displayMessage }}
+      </div>
+    </div>
+    @if (paginatedResult.metadata; as metadata) {
+    <app-paginator
+      [pageNumber]="metadata.currentPage"
+      [totalCount]="metadata.totalCount"
+      [totalPages]="metadata.totalPages"
+      [pageSize]="metadata.pageSize"
+      (pageChange)="onPageChange($event)"
+    />
+    }
+  </div>
+  @if (paginatedResult.items; as members) {
+  <div class="grid grid-cols-5 gap-6">
+    @for (member of members; track member.id) {
+    <app-member-card [member]="member" />
+    }
+  </div>
+  }
+</div>
+}
+
+<!-- W -->
+<app-filter-modal
+  #filterModal
+  [hidden]="!paginatedMembers()"
+  (closeModal)="onClose()"
+  (submitData)="onFilterChange($event)"
+/>

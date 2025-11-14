@@ -2,6 +2,7 @@ using System.Security.Claims;
 using API.DTOs;
 using API.Entities;
 using API.Extensions;
+using API.Helpers;
 using API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,13 @@ namespace API.Controllers
     public class MembersController(IMemberRepository memberRepository, IPhotoService photoService) : BaseAPIController
     {
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<Member>>> GetMembers()
+        // Note that the pagingParams is an object of type PagingParams so it will search the properties in the request's body. This is why we need to explicitly tell it to get the properties from the query url
+        public async Task<ActionResult<IReadOnlyList<Member>>> GetMembers([FromQuery] MemberParams memberParams)
         {
+            // Setting the Id in the member param to be the current user id taken from the user claims
+            memberParams.CurrentMemberId = User.GetMemberId();
             // The GetMembersAsync returns a IReadOnlyList<Member> but the method needs to return an action result so we wrap it with an Ok action result
-            return Ok(await memberRepository.GetMembersAsync());
+            return Ok(await memberRepository.GetMembersAsync(memberParams));
         }
 
         // [Authorize]

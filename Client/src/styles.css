@@ -3,4 +3,5 @@
 @plugin "daisyui" {
   /* Declaring that all themes are available from daisyui */
   themes: all;
+  exclude: rootscrollgutter;
 }
