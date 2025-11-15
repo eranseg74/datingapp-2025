@@ -21,6 +21,14 @@ public class Member
   [JsonIgnore] // This will ignore these fields when we serialize the response into JSON by the Api Controller
   public List<Photo> Photos { get; set; } = [];
 
+  // A list of all the members that liked the current member. Also setting the JsonIgnore attribute to indicate that this property should not be passed when we return a list of members
+  [JsonIgnore]
+  public List<MemberLike> LikedByMembers { get; set; } = [];
+
+  // A list of all the members that the current member liked
+  [JsonIgnore]
+  public List<MemberLike> LikedMembers { get; set; } = [];
+
   [JsonIgnore]
   // The ForeignKey attribute defines the relation between the Member and the AppUser classes
   [ForeignKey(nameof(Id))]
