@@ -28,6 +28,7 @@ builder.Services.AddScoped<IPhotoService, PhotoService>();
 // Adding the repository as a service so it will be injectable to all other classes
 builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 builder.Services.AddScoped<ILikesRepository, LikesRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<LogUserActivity>();
 // Cloudinary settings injection. Be careful to match the section name with the appsettings.json file
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));

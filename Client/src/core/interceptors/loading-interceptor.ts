@@ -34,6 +34,16 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
     invalidateCache('/likes');
   }
 
+  // Invalidating the cache for messages
+  if (req.method.includes('POST') && req.url.includes('/messages')) {
+    invalidateCache('/messages');
+  }
+
+  // Invalidating the cache for messages
+  if (req.method.includes('DELETE') && req.url.includes('/messages')) {
+    invalidateCache('/messages');
+  }
+
   // On each request here we are checking if it is a GET request. If so, we check if we have something in the cache and if we do we return the data in the cache and exit without calling to the server for data
   if (req.method === 'GET') {
     const cachedResponse = cache.get(cacheKey);

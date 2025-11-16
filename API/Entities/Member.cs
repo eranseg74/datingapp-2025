@@ -30,6 +30,10 @@ public class Member
   public List<MemberLike> LikedMembers { get; set; } = [];
 
   [JsonIgnore]
+  public List<Message> MessagesSent { get; set; } = [];
+  public List<Message> MessagesReceived { get; set; } = [];
+
+  [JsonIgnore]
   // The ForeignKey attribute defines the relation between the Member and the AppUser classes
   [ForeignKey(nameof(Id))]
   public AppUser User { get; set; } = null!;
