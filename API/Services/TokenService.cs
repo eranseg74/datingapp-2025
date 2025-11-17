@@ -1,15 +1,18 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using API.Entities;
 using API.Interfaces;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace API.Services;
 
-public class TokenService(IConfiguration config) : ITokenService // The configuration file refers to the appsettings.json (or appsettings.Development.json)
+public class TokenService(IConfiguration config, UserManager<AppUser> userManager) : ITokenService // The configuration file refers to the appsettings.json (or appsettings.Development.json)
 {
-  public string CreateToken(AppUser user)
+  public async Task<string> CreateToken(AppUser user)
   {
     var tokenKey = config["TokenKey"] ?? throw new Exception("Cannot get token key");
     if (tokenKey.Length < 64)
@@ -21,20 +24,33 @@ public class TokenService(IConfiguration config) : ITokenService // The configur
     // Adding some information to the token in the form of claims
     var claims = new List<Claim>
     {
-      new(ClaimTypes.Email, user.Email),
+      new(ClaimTypes.Email, user.Email!),
       new(ClaimTypes.NameIdentifier, user.Id)
     };
+
+    // Getting the user's roles so we will know what abilities to assign to the user
+    var roles = await userManager.GetRolesAsync(user);
+    claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
     var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
     var tokenDescriptor = new SecurityTokenDescriptor
     { // Some properties that the token needs
       Subject = new ClaimsIdentity(claims),
-      Expires = DateTime.UtcNow.AddDays(7),
+      Expires = DateTime.UtcNow.AddMinutes(7),
       SigningCredentials = creds
     };
 
     var tokenHandler = new JwtSecurityTokenHandler(); // This is the class that will ceate the token based on the token descriptor
     var token = tokenHandler.CreateToken(tokenDescriptor);
     return tokenHandler.WriteToken(token);
+  }
+
+  public string GenerateRefreshToken()
+  {
+    // Generating a new token
+    // The randomBytes will contain a 64 bytes number
+    var randomBytes = RandomNumberGenerator.GetBytes(64);
+    return Convert.ToBase64String(randomBytes);
   }
 }

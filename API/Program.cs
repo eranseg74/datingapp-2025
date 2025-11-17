@@ -1,10 +1,12 @@
 using System.Text;
 using API.Data;
+using API.Entities;
 using API.Helpers;
 using API.Interfaces;
 using API.Middleware;
 using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -33,6 +35,15 @@ builder.Services.AddScoped<LogUserActivity>();
 // Cloudinary settings injection. Be careful to match the section name with the appsettings.json file
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 
+// Adding the Identity Framework
+// Two more options are the AddIdentityApiEndpoints which provides a built-in ApiController with predefined endpoints. Could be very useful but will probably require adjustments and configurations. The second option is AddIdentity which uses cookies for authentication. Becasue we are using JWT we choose the AddIdentityCore option
+builder.Services.AddIdentityCore<AppUser>(opt =>
+{
+  opt.Password.RequireNonAlphanumeric = false;
+  opt.User.RequireUniqueEmail = true; // Using the Identity implementation to check email existance
+}).AddRoles<IdentityRole>() // Using the IdentityRole to define roles
+  .AddEntityFrameworkStores<AppDbContext>(); // Using EntityFramework to store identities
+
 // Adding the authentication scheme
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -48,6 +59,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 // builder.Services.AddOpenApi();
+
+// Adding policies
+builder.Services.AddAuthorizationBuilder()
+  .AddPolicy("RequiredAdminRole", policy => policy.RequireRole("Admin"))
+  .AddPolicy("ModeratePhotoRole", policy => policy.RequireRole("Admin", "Moderator"));
 
 
 var app = builder.Build();
@@ -65,7 +81,7 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors(options =>
 {
-  options.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200", "https://localhost:4200");
+  options.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("http://localhost:4200", "https://localhost:4200");
 });
 
 app.UseAuthentication(); // Asks the question - "Who are you?"
@@ -82,9 +98,10 @@ var services = scope.ServiceProvider;
 try
 {
   var context = services.GetRequiredService<AppDbContext>(); // Getting the AppDbContext service to gain access to the DB
+  var userManager = services.GetRequiredService<UserManager<AppUser>>(); // Getting the AppDbContext service to gain access to the DB
   // Migrating the database in code:
   await context.Database.MigrateAsync(); // The MigrateAsync method applies any pending migrations for the context to the database. If there is no DB, it will be automatically created.
-  await Seed.SeedUsers(context);
+  await Seed.SeedUsers(userManager);
 }
 catch (Exception ex)
 {

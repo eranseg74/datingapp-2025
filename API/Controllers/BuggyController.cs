@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,5 +28,12 @@ public class BuggyController : BaseAPIController
   public IActionResult GetBadRequest()
   {
     return BadRequest("This was not a good request");
+  }
+
+  [Authorize(Roles = "Admin")]
+  [HttpGet("admin-secret")]
+  public ActionResult<string> GetSecretAdmin()
+  {
+    return Ok("Only admins should see this");
   }
 }

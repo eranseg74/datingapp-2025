@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using API.DTOs;
 using API.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Data;
@@ -10,10 +11,11 @@ namespace API.Data;
 public class Seed
 {
   // The purpose of this method is to check if the DB is empty. If not then nothing will happen because we have all the data and schemas. Otherwise, the method will run a migration to create all the schemas and insert all the users and members to the DB from the seed file
-  public static async Task SeedUsers(AppDbContext context)
+  // public static async Task SeedUsers(AppDbContext context)
+  public static async Task SeedUsers(UserManager<AppUser> userManager) // This is like the AppDbContext but with a lot more functions
   {
     // Since this is a static method it will run once when the program starts. Here we check on initialization if there are users in the DB and if so we will not seed the data from the JSON file
-    if (await context.Users.AnyAsync()) return;
+    if (await userManager.Users.AnyAsync()) return;
 
     var memberData = await File.ReadAllTextAsync("Data/UserSeedData.json");
     // The data from the json file will come as a string so we need to deserialize it into a C# object
@@ -33,15 +35,16 @@ public class Seed
 
     foreach (var member in members)
     {
-      using var hmac = new HMACSHA512();
+      // using var hmac = new HMACSHA512(); // No need for that. ASPNet will hash and salt the passwords
       var user = new AppUser
       {
         Id = member.Id,
         Email = member.Email,
+        UserName = member.Email,
         DisplayName = member.DisplayName,
         ImageUrl = member.ImageUrl,
-        PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes("Pa$$w0rd")),
-        PasswordSalt = hmac.Key,
+        // PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes("Pa$$w0rd")),
+        // PasswordSalt = hmac.Key,
         Member = new Member
         {
           Id = member.Id,
@@ -61,8 +64,24 @@ public class Seed
         Url = member.ImageUrl!,
         MemberId = member.Id,
       });
-      context.Users.Add(user);
+      // context.Users.Add(user);
+      // Adding the user in ASPNet is implemented be the CreateAsync function. The function returns an IdentityResult.
+      var result = await userManager.CreateAsync(user, "Pa$$w0rd");
+      if (!result.Succeeded)
+      {
+        Console.WriteLine(value: result.Errors.First().Description);
+      }
+      await userManager.AddToRoleAsync(user, "Member"); // Currently defining all of the added users as members
     }
-    await context.SaveChangesAsync();
+    // await context.SaveChangesAsync(); // No need for that because of the ASPNet transformation
+    // Creating an admin user
+    var admin = new AppUser
+    {
+      UserName = "admin@test.com",
+      Email = "admin@test.com",
+      DisplayName = "Admin"
+    };
+    await userManager.CreateAsync(admin, "Pa$$w0rd");
+    await userManager.AddToRolesAsync(admin, ["Admin", "Moderator"]);
   }
 }

@@ -27,7 +27,7 @@ export const appConfig: ApplicationConfig = {
       return new Promise<void>((resolve) => {
         setTimeout(async () => {
           try {
-            return lastValueFrom(initService.init());
+            await lastValueFrom(initService.init());
           } finally {
             const splash = document.getElementById('initial-splash'); // Using a splash screen until the application is loaded.Once loaded the splash screen is removed. The splash is defined in the index.html file
             if (splash) {
