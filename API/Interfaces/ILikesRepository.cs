@@ -21,5 +21,5 @@ public interface ILikesRepository
   void AddLike(MemberLike like);
 
   // This method will save all the updates to the database
-  Task<bool> SaveAllChanges();
+  // Task<bool> SaveAllChanges(); // Is handled through the Complete() methos in the UnitOfWork
 }

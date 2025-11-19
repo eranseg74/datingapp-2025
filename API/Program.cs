@@ -28,10 +28,14 @@ builder.Services.AddCors();
 // 3) AddScoped - This will create a new instance of the service once per request
 builder.Services.AddScoped<ITokenService, TokenService>(); // Whenever we need this service in the application we will inject the ITokenService interface. According to this line, the app will know that whenever the ITokenService is injected it should use the TokenService (The service that implements the interface)
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+// No need to add the repositories. They all be handled in the UnitOfWork
+/*
 // Adding the repository as a service so it will be injectable to all other classes
 builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 builder.Services.AddScoped<ILikesRepository, LikesRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+*/
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<LogUserActivity>();
 // Cloudinary settings injection. Be careful to match the section name with the appsettings.json file
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));

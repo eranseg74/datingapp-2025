@@ -81,11 +81,16 @@ export class AccountService {
   }
 
   logout() {
-    // localStorage.removeItem('user');
-    localStorage.removeItem('filters');
-    this.likeService.clearLikeIds();
-    this.currentUser.set(null);
-    this.presenceService.stopHubConnection();
+    // The HTTP call will set the refresh token and the refresh token expiry to null from the DB so once we logout a user he will not be able to connect to the application by refreshing the page. The { withCredentials: true } is required because of the cookies
+    this.http.post(this.baseUrl + 'account/logout', {}, { withCredentials: true }).subscribe({
+      next: () => {
+        // localStorage.removeItem('user');
+        localStorage.removeItem('filters');
+        this.likeService.clearLikeIds();
+        this.currentUser.set(null);
+        this.presenceService.stopHubConnection();
+      },
+    });
   }
 
   private getRolesFromToken(user: User): string[] {

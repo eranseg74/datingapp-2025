@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers
 {
     [Authorize] // Defining an attribute above the class will enforce the attribute on all endpoints. Note! If we define [Authorized] in the class level we can exclude a certain endpoint by defining it as [AllowAnonymous]. It is not possible to define [AllowAnonymous] on the class level and put [Authorized] on a certain endpoint
-    public class MembersController(IMemberRepository memberRepository, IPhotoService photoService) : BaseAPIController
+    public class MembersController(IUnitOfWork unitOfWork, IPhotoService photoService) : BaseAPIController
     {
         [HttpGet]
         // Note that the pagingParams is an object of type PagingParams so it will search the properties in the request's body. This is why we need to explicitly tell it to get the properties from the query url
@@ -19,14 +19,14 @@ namespace API.Controllers
             // Setting the Id in the member param to be the current user id taken from the user claims
             memberParams.CurrentMemberId = User.GetMemberId();
             // The GetMembersAsync returns a IReadOnlyList<Member> but the method needs to return an action result so we wrap it with an Ok action result
-            return Ok(await memberRepository.GetMembersAsync(memberParams));
+            return Ok(await unitOfWork.MemberRepository.GetMembersAsync(memberParams));
         }
 
         // [Authorize]
         [HttpGet("{id}")] // localhost:5000/api/members/bob-id
         public async Task<ActionResult<Member>> GetMember(string id)
         {
-            var member = await memberRepository.GetMembeByIdAsync(id); //context.Users.FindAsync(id);
+            var member = await unitOfWork.MemberRepository.GetMembeByIdAsync(id); //context.Users.FindAsync(id);
             if (member == null)
             {
                 return NotFound();
@@ -37,7 +37,7 @@ namespace API.Controllers
         [HttpGet("{id}/photos")]
         public async Task<ActionResult<IReadOnlyList<Photo>>> GetMemberPhotos(string id)
         {
-            return Ok(await memberRepository.GetPhotosForMemberAsync(id));
+            return Ok(await unitOfWork.MemberRepository.GetPhotosForMemberAsync(id));
         }
 
         [HttpPut]
@@ -50,7 +50,7 @@ namespace API.Controllers
             // {
             //     return BadRequest("Oops - no id found in token");
             // }
-            var member = await memberRepository.GetMemberForUpdate(memberId);
+            var member = await unitOfWork.MemberRepository.GetMemberForUpdate(memberId);
             if (member == null)
             {
                 return BadRequest("Could not get member");
@@ -62,9 +62,9 @@ namespace API.Controllers
             member.User.DisplayName = memberUpdateDTO.DisplayName ?? member.User.DisplayName;
 
             // This method just turns the state of the member as modifies. This means that even if there are no changes the state will still be changed to modified. This is good because otherwise, when we will save the changes, the controller will return a BadRequest saying that no changes where made to the object which is true. Updating the state to modified in all cases helps us avoid the BadRequest even if the new values in the update request are exactly the same as the values in the current member object
-            memberRepository.Update(member); // Optional
+            unitOfWork.MemberRepository.Update(member); // Optional
 
-            if (await memberRepository.SaveAllAsync())
+            if (await unitOfWork.Complete())
             {
                 return NoContent();
             }
@@ -74,7 +74,7 @@ namespace API.Controllers
         [HttpPost("add-photo")]
         public async Task<ActionResult<Photo>> AddPhoto([FromForm] IFormFile file)
         {
-            var member = await memberRepository.GetMemberForUpdate(User.GetMemberId());
+            var member = await unitOfWork.MemberRepository.GetMemberForUpdate(User.GetMemberId());
             if (member == null)
             {
                 return BadRequest("Cannot update member");
@@ -96,7 +96,7 @@ namespace API.Controllers
                 member.User.ImageUrl = photo.Url;
             }
             member.Photos.Add(photo);
-            if (await memberRepository.SaveAllAsync())
+            if (await unitOfWork.Complete())
             {
                 return photo;
             }
@@ -106,7 +106,7 @@ namespace API.Controllers
         [HttpPut("set-main-photo/{photoId}")]
         public async Task<ActionResult> SetMainPhoto(int photoId)
         {
-            var member = await memberRepository.GetMemberForUpdate(User.GetMemberId());
+            var member = await unitOfWork.MemberRepository.GetMemberForUpdate(User.GetMemberId());
             if (member == null) return BadRequest("Cannot get member from token");
             var photo = member.Photos.SingleOrDefault(x => x.Id == photoId);
             if (member.ImageUrl == photo?.Url || photo == null)
@@ -115,14 +115,14 @@ namespace API.Controllers
             }
             member.ImageUrl = photo.Url;
             member.User.ImageUrl = photo.Url;
-            if (await memberRepository.SaveAllAsync()) return NoContent(); // Returns 204 - Ok + no further info is required
+            if (await unitOfWork.Complete()) return NoContent(); // Returns 204 - Ok + no further info is required
             return BadRequest("Problem setting main photo");
         }
 
         [HttpDelete("delete-photo/{photoId}")]
         public async Task<ActionResult> DeletePhoto(int photoId)
         {
-            var member = await memberRepository.GetMemberForUpdate(User.GetMemberId());
+            var member = await unitOfWork.MemberRepository.GetMemberForUpdate(User.GetMemberId());
             if (member == null) return BadRequest("Cannot get member from token");
             var photo = member.Photos.SingleOrDefault(x => x.Id == photoId);
             if (photo == null || member.ImageUrl == photo.Url)
@@ -138,7 +138,7 @@ namespace API.Controllers
                 }
             }
             member.Photos.Remove(photo);
-            if (await memberRepository.SaveAllAsync())
+            if (await unitOfWork.Complete())
             {
                 return Ok();
             }

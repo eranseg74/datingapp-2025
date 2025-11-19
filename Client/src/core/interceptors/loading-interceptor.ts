@@ -40,6 +40,11 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   // Invalidating the cache for messages
+  if (req.method.includes('POST') && req.url.includes('/logout')) {
+    cache.clear(); // If the user logs out - clear the cache
+  }
+
+  // Invalidating the cache for messages
   if (req.method.includes('DELETE') && req.url.includes('/messages')) {
     invalidateCache('/messages');
   }

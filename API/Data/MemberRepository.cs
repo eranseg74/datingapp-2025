@@ -59,10 +59,10 @@ public class MemberRepository(AppDbContext context) : IMemberRepository
     return await context.Members.Where(x => x.Id == memberId).SelectMany(x => x.Photos).ToListAsync();
   }
 
-  public async Task<bool> SaveAllAsync()
-  {
-    return await context.SaveChangesAsync() > 0; // The SaveChangesAsync returns a list of all the changes so we are returning if it is greater than 0 which means that at least one change occured
-  }
+  // public async Task<bool> SaveAllAsync()
+  // {
+  //   return await context.SaveChangesAsync() > 0; // The SaveChangesAsync returns a list of all the changes so we are returning if it is greater than 0 which means that at least one change occured
+  // }
 
   // Note that using this function will set the entity state to modified even if the updating properties are identical to the original values, so the SaveChangesAsync above will return true even if there are no changes
   public void Update(Member member)

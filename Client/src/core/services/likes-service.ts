@@ -13,7 +13,16 @@ export class LikesService {
   likeIds = signal<string[]>([]);
 
   toggleLike(targetMemberId: string) {
-    return this.http.post(`${this.baseUrl}likes/${targetMemberId}`, {});
+    return this.http.post(`${this.baseUrl}likes/${targetMemberId}`, {}).subscribe({
+      next: () => {
+        // When clicking on the like icon, we check if the user likes the member. If so, we remove the like from the likeIds array and if not, we add it
+        if (this.likeIds().includes(targetMemberId)) {
+          this.likeIds.update((ids) => ids.filter((x) => x !== targetMemberId));
+        } else {
+          this.likeIds.update((ids) => [...ids, targetMemberId]);
+        }
+      },
+    });
   }
 
   getLikes(predicate: string, pageNumber: number, pageSize: number) {

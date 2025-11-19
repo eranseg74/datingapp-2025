@@ -11,8 +11,7 @@ namespace API.SignalR;
 
 [Authorize]
 // IHubContext<PresenceHub> presenceHub gives us access to the functionality of the PresenceHub. We need this in order to check if a user is connected to the hub. If not but he is online, and he gets a message we will notify him with a toast that he received a message
-public class MessageHub(IMessageRepository messageRepository,
-                        IMemberRepository memberRepository,
+public class MessageHub(IUnitOfWork unitOfWork,
                         IHubContext<PresenceHub> presenceHub) : Hub
 {
   // Thid function enables the users in a chat to receive messages between them. Not send messages to each other
@@ -26,7 +25,7 @@ public class MessageHub(IMessageRepository messageRepository,
     await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
     await AddToGroup(groupName); // Adding the group to the database
 
-    var messages = await messageRepository.GetMessageThread(GetUserId(), otherUser);
+    var messages = await unitOfWork.MessageRepository.GetMessageThread(GetUserId(), otherUser);
 
     await Clients.Group(groupName).SendAsync("ReceiveMessageThread", messages);
   }
@@ -34,8 +33,8 @@ public class MessageHub(IMessageRepository messageRepository,
   // A function to send message in a chat
   public async Task SendMessage(CreateMessageDTO createMessageDTO)
   {
-    var sender = await memberRepository.GetMembeByIdAsync(GetUserId());
-    var recipient = await memberRepository.GetMembeByIdAsync(createMessageDTO.RecipientId);
+    var sender = await unitOfWork.MemberRepository.GetMembeByIdAsync(GetUserId());
+    var recipient = await unitOfWork.MemberRepository.GetMembeByIdAsync(createMessageDTO.RecipientId);
 
     if (recipient == null || sender == null || sender.Id == createMessageDTO.RecipientId)
     {
@@ -49,7 +48,7 @@ public class MessageHub(IMessageRepository messageRepository,
     };
 
     var groupName = GetGroupName(sender.Id, recipient.Id);
-    var group = await messageRepository.GetMessageGroup(groupName);
+    var group = await unitOfWork.MessageRepository.GetMessageGroup(groupName);
     var userInGroup = group != null && group.Connections.Any(x => x.UserId == message.RecipientId);
 
     if (userInGroup)
@@ -57,9 +56,9 @@ public class MessageHub(IMessageRepository messageRepository,
       message.DateRead = DateTime.UtcNow;
     }
 
-    messageRepository.AddMessage(message);
+    unitOfWork.MessageRepository.AddMessage(message);
 
-    if (await messageRepository.SaveAllAsync())
+    if (await unitOfWork.Complete())
     {
       await Clients.Group(groupName).SendAsync("NewMessage", message.ToDTO());
       var connections = await PresenceTracker.GetConnectionsForUser(recipient.Id);
@@ -73,22 +72,22 @@ public class MessageHub(IMessageRepository messageRepository,
   // On disconnect the disconnected user will automatically be removed from the group. No need to implement this
   public override async Task OnDisconnectedAsync(Exception? exception)
   {
-    await messageRepository.RemoveConnection(Context.ConnectionId);
+    await unitOfWork.MessageRepository.RemoveConnection(Context.ConnectionId);
     await base.OnDisconnectedAsync(exception);
   }
 
   private async Task<bool> AddToGroup(string groupName)
   {
-    var group = await messageRepository.GetMessageGroup(groupName);
+    var group = await unitOfWork.MessageRepository.GetMessageGroup(groupName);
     var connection = new Connection(Context.ConnectionId, GetUserId());
 
     if (group == null)
     {
       group = new Group(groupName);
-      messageRepository.AddGroup(group);
+      unitOfWork.MessageRepository.AddGroup(group);
     }
     group.Connections.Add(connection);
-    return await messageRepository.SaveAllAsync();
+    return await unitOfWork.Complete();
   }
 
   private static string GetGroupName(string? caller, string? other)

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
-    public class LikesController(ILikesRepository likesRepository) : BaseAPIController
+    public class LikesController(IUnitOfWork unitOfWork) : BaseAPIController
     {
         [HttpPost("{targetMemberId}")]
         public async Task<ActionResult> ToggleLike(string targetMemberId)
@@ -16,7 +16,7 @@ namespace API.Controllers
             var sourceMemberId = User.GetMemberId();
             if (sourceMemberId == targetMemberId) return BadRequest("You cannot like tourself");
 
-            var existingLike = await likesRepository.GetMemberLike(sourceMemberId, targetMemberId);
+            var existingLike = await unitOfWork.LikesRepository.GetMemberLike(sourceMemberId, targetMemberId);
             if (existingLike == null)
             {
                 var like = new MemberLike
@@ -24,13 +24,13 @@ namespace API.Controllers
                     SourceMemberId = sourceMemberId,
                     TargetMemberId = targetMemberId
                 };
-                likesRepository.AddLike(like); // This will go to the EntityFramework's tracking and will be commited to the DB when executing the SaveAllChanges method
+                unitOfWork.LikesRepository.AddLike(like); // This will go to the EntityFramework's tracking and will be commited to the DB when executing the SaveAllChanges method
             }
             else
             {
-                likesRepository.DeleteLike(existingLike); // This will go to the EntityFramework's tracking and will be commited to the DB when executing the SaveAllChanges method
+                unitOfWork.LikesRepository.DeleteLike(existingLike); // This will go to the EntityFramework's tracking and will be commited to the DB when executing the SaveAllChanges method
             }
-            if (await likesRepository.SaveAllChanges()) return Ok();
+            if (await unitOfWork.Complete()) return Ok();
             return BadRequest("Failed to update like");
         }
 
@@ -38,7 +38,7 @@ namespace API.Controllers
         [HttpGet("list")]
         public async Task<ActionResult<IReadOnlyList<string>>> GetCurrentMemberLikeIds()
         {
-            return Ok(await likesRepository.GetCurrentMemberLikeIds(User.GetMemberId()));
+            return Ok(await unitOfWork.LikesRepository.GetCurrentMemberLikeIds(User.GetMemberId()));
         }
 
         // Returns all the members that the specified member like, liked by. or mutual like
@@ -46,7 +46,7 @@ namespace API.Controllers
         public async Task<ActionResult<PaginatedResult<Member>>> GetMemberLikes([FromQuery] LikesParams likesParams)
         {
             likesParams.MemberId = User.GetMemberId();
-            return Ok(await likesRepository.GetMemberLikes(likesParams));
+            return Ok(await unitOfWork.LikesRepository.GetMemberLikes(likesParams));
         }
     }
 }

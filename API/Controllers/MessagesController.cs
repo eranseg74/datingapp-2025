@@ -7,13 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
-public class MessagesController(IMessageRepository messageRepository, IMemberRepository memberRepository) : BaseAPIController
+public class MessagesController(IUnitOfWork unitOfWork) : BaseAPIController
 {
   [HttpPost]
   public async Task<ActionResult<MessageDTO>> CreateMessage(CreateMessageDTO createMessageDTO)
   {
-    var sender = await memberRepository.GetMembeByIdAsync(User.GetMemberId());
-    var recipient = await memberRepository.GetMembeByIdAsync(createMessageDTO.RecipientId);
+    var sender = await unitOfWork.MemberRepository.GetMembeByIdAsync(User.GetMemberId());
+    var recipient = await unitOfWork.MemberRepository.GetMembeByIdAsync(createMessageDTO.RecipientId);
 
     if (recipient == null || sender == null || sender.Id == createMessageDTO.RecipientId)
     {
@@ -25,8 +25,8 @@ public class MessagesController(IMessageRepository messageRepository, IMemberRep
       RecipientId = recipient.Id,
       Content = createMessageDTO.Content
     };
-    messageRepository.AddMessage(message);
-    if (await messageRepository.SaveAllAsync())
+    unitOfWork.MessageRepository.AddMessage(message);
+    if (await unitOfWork.Complete())
     {
       return message.ToDTO();
     }
@@ -37,21 +37,21 @@ public class MessagesController(IMessageRepository messageRepository, IMemberRep
   public async Task<ActionResult<PaginatedResult<MessageDTO>>> GetMessagesByContainer([FromQuery] MessageParams messageParams)
   {
     messageParams.MemberId = User.GetMemberId();
-    return await messageRepository.GetMessagesForMember(messageParams);
+    return await unitOfWork.MessageRepository.GetMessagesForMember(messageParams);
   }
 
   [HttpGet("thread/{recipientId}")]
   public async Task<ActionResult<IReadOnlyList<MessageDTO>>> GetMessageThread(string recipientId)
   {
     var currentMemberId = User.GetMemberId();
-    return Ok(await messageRepository.GetMessageThread(currentMemberId, recipientId));
+    return Ok(await unitOfWork.MessageRepository.GetMessageThread(currentMemberId, recipientId));
   }
 
   [HttpDelete("{id}")]
   public async Task<ActionResult> DeleteMessage(string id)
   {
     var memberId = User.GetMemberId();
-    var message = await messageRepository.GetMessage(id);
+    var message = await unitOfWork.MessageRepository.GetMessage(id);
     if (message == null)
     {
       return BadRequest("Cannot delete this message");
@@ -74,9 +74,9 @@ public class MessagesController(IMessageRepository messageRepository, IMemberRep
     // A new syntax for conditional checking. In the given object, if the parameters in the brackets are true the condition is satisfied
     if (message is { SenderDeleted: true, RecipientDeleted: true })
     {
-      messageRepository.DeleteMessage(message);
+      unitOfWork.MessageRepository.DeleteMessage(message);
     }
-    if (await memberRepository.SaveAllAsync())
+    if (await unitOfWork.Complete())
     {
       return Ok();
     }

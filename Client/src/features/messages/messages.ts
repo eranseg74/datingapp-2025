@@ -6,6 +6,7 @@ import { Paginator } from '../../shared/paginator/paginator';
 import { TimeAgoPipe } from '../../core/pipes/time-ago-pipe';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { ConfirmDialogService } from '../../core/services/confirm-dialog-service';
 
 @Component({
   selector: 'app-messages',
@@ -15,6 +16,7 @@ import { DatePipe } from '@angular/common';
 })
 export class Messages implements OnInit {
   private messageService = inject(MessageService);
+  private confirmDialogService = inject(ConfirmDialogService);
   protected container = 'Inbox';
   // A utility container to overcome the delay when switching from inbox to outbox. The delay is because is only on the first time or after refresh because of the caching. When the cache is empty, an API call is executed and until the data comes from the server the image that is displayed is incorrect and changes after a second but still not a good UI experience. Since all the checks in the UI are done against the isInbox method which checks the fetchedContainer the data is synchronized and the delay of the photos is removed
   protected fetchedContainer = 'Inbox';
@@ -41,9 +43,18 @@ export class Messages implements OnInit {
     });
   }
 
-  deleteMessage(event: Event, id: string) {
+  async confirmDelete(event: Event, id: string) {
     // Getting the event so we can stop propagation. We need it because currently whenever we click on a message we areredirected to its details. We want that whenever we click on the delete button we will not be redirected there
     event.stopPropagation();
+    const ok = await this.confirmDialogService.confirm(
+      'Are you sure you want to delete this message?'
+    );
+    if (ok) {
+      this.deleteMessage(id);
+    }
+  }
+
+  deleteMessage(id: string) {
     this.messageService.deleteMessage(id).subscribe({
       next: () => {
         // Recall that paginatedMessages is a signal of type PaginatedResult but after the assignment here the current type is PaginatedResult that holds a metadata and list of items
