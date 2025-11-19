@@ -10,6 +10,11 @@ namespace API.Data;
 
 public class MessageRepository(AppDbContext context) : IMessageRepository
 {
+  public void AddGroup(Group group)
+  {
+    context.Groups.Add(group);
+  }
+
   public void AddMessage(Message message)
   {
     context.Messages.Add(message);
@@ -20,9 +25,28 @@ public class MessageRepository(AppDbContext context) : IMessageRepository
     context.Messages.Remove(message);
   }
 
+  public async Task<Connection?> GetConnection(string connectionId)
+  {
+    return await context.Connections.FindAsync(connectionId);
+  }
+
+  // This will return the group in which the connectionId is inside of
+  public async Task<Group?> GetGroupForConnection(string connectionId)
+  {
+    return await context.Groups
+      .Include(x => x.Connections) // Returns all the ICollection<Connection> (there is one for each group)
+      .Where(x => x.Connections.Any(c => c.ConnectionId == connectionId)) // All the groups that contain the connectionId
+      .FirstOrDefaultAsync(); // The first group from the result
+  }
+
   public async Task<Message?> GetMessage(string messageId)
   {
     return await context.Messages.FindAsync(messageId);
+  }
+
+  public async Task<Group?> GetMessageGroup(string groupName)
+  {
+    return await context.Groups.Include(x => x.Connections).FirstOrDefaultAsync(X => X.Name == groupName);
   }
 
   public async Task<PaginatedResult<MessageDTO>> GetMessagesForMember(MessageParams messageParams)
@@ -79,6 +103,12 @@ public class MessageRepository(AppDbContext context) : IMessageRepository
       .Select(MessageExtensions.ToDTOProjection())
       .ToListAsync();
     return messages;
+  }
+
+  public async Task RemoveConnection(string connectionId)
+  {
+    // The ExecuteDeleteAsync will simply remove the result from the database
+    await context.Connections.Where(x => x.ConnectionId == connectionId).ExecuteDeleteAsync();
   }
 
   public async Task<bool> SaveAllAsync()

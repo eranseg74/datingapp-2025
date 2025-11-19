@@ -14,6 +14,8 @@ public class AppDbContext(DbContextOptions options) : IdentityDbContext<AppUser>
   public DbSet<Photo> Photos { get; set; }
   public DbSet<MemberLike> Likes { get; set; }
   public DbSet<Message> Messages { get; set; }
+  public DbSet<Group> Groups { get; set; }
+  public DbSet<Connection> Connections { get; set; }
 
   // The OnModelCreating method is a method derived from the DbContext class. The method allows us to override or add configuration to the entity framework functionality. We want to add functionality so we keep the base.OnModelCreating(modelBuilder); and add what we need
   protected override void OnModelCreating(ModelBuilder modelBuilder)

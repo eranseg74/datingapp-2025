@@ -4,6 +4,8 @@ import { LoginCreds, RegisterCreds, User } from '../../types/user';
 import { tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { LikesService } from './likes-service';
+import { PresenceService } from './presence-service';
+import { HubConnectionState } from '@microsoft/signalr';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +14,8 @@ export class AccountService {
   private http = inject(HttpClient);
   // Injections can only occur one way. If the LikeService is injected here it will not be possible to inject the account service in the like service
   private likeService = inject(LikesService);
+  // Injecting the SignalR's
+  private presenceService = inject(PresenceService);
   currentUser = signal<User | null>(null); // Using union (|) otherwise we will get an error that User cannot be null
   private baseUrl = environment.apiUrl;
 
@@ -71,6 +75,9 @@ export class AccountService {
     // localStorage.setItem('user', JSON.stringify(user));
     this.currentUser.set(user);
     this.likeService.getLikeIds(); // That will populate the signal in any of the components that uses the like feature
+    if (this.presenceService.hubConnection?.state !== HubConnectionState.Connected) {
+      this.presenceService.createHubConnection(user);
+    }
   }
 
   logout() {
@@ -78,6 +85,7 @@ export class AccountService {
     localStorage.removeItem('filters');
     this.likeService.clearLikeIds();
     this.currentUser.set(null);
+    this.presenceService.stopHubConnection();
   }
 
   private getRolesFromToken(user: User): string[] {
