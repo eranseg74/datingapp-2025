@@ -4,8 +4,17 @@ import { BusyService } from '../services/busy-service';
 import { delay, finalize, identity, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+// Setting a time limit to the cache. After this time limit, the cache will be cleared. This is to prevent the cache from growing indefinitely and consuming too much memory.
+// Also, this will ensure that the data is not stale for too long so if any other user logs in to the application, since the data is coming from the cache the current user will not see the new logged in user. After cleaning the cache after a time limit, the new user data will be fetched from the server.
+type CacheEntry = {
+  response: HttpEvent<unknown>;
+  timestamp: number;
+};
+
+const CACHE_TIME_LIMIT = 5 * 60 * 1000; // 5 minutes
+
 // We want to cache GET requests. The string here will be the request URL
-const cache = new Map<string, HttpEvent<unknown>>();
+const cache = new Map<string, CacheEntry>();
 
 export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
   const busyService = inject(BusyService);
@@ -23,7 +32,7 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
     for (const key of cache.keys()) {
       if (key.includes(urlPattern)) {
         cache.delete(key);
-        console.log(`Cache invalidated for: ${key}`);
+        // console.log(`Cache invalidated for: ${key}`); // Removed before production
       }
     }
   };
@@ -54,8 +63,15 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.method === 'GET') {
     const cachedResponse = cache.get(cacheKey);
     if (cachedResponse) {
-      // We need to return an Observable because this is an HttpInterceptor for HTTP requests made via HttpClient
-      return of(cachedResponse);
+      const isExpired = Date.now() - cachedResponse.timestamp > CACHE_TIME_LIMIT;
+      if (!isExpired) {
+        // If we have a cached response and it is not expired, return it
+        // We need to return an Observable because this is an HttpInterceptor for HTTP requests made via HttpClient
+        return of(cachedResponse.response);
+      } else {
+        // If the cached response is expired, remove it from the cache and proceed to make a new request
+        cache.delete(cacheKey); // Remove the expired cache entry
+      }
     }
   }
 
@@ -64,7 +80,10 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
     // Adding a delay only in development mode to simulate loading time. The identity function just returns the response as is without any modification. We use this because the delay operator needs to get an Observable and we cannot provide null or undefined
     environment.production ? identity : delay(500), // This is a fake delay. Need to make sure to remove it before loading to production
     tap((response) => {
-      cache.set(cacheKey, response); // The response here is of type HttpEvent
+      cache.set(cacheKey, {
+        response,
+        timestamp: Date.now(),
+      }); // The response here is of type HttpEvent
     }),
     finalize(() => {
       busyService.idle();

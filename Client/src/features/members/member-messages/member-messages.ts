@@ -3,6 +3,7 @@ import {
   effect,
   ElementRef,
   inject,
+  model,
   OnDestroy,
   OnInit,
   signal,
@@ -33,7 +34,7 @@ export class MemberMessages implements OnInit, OnDestroy {
   // We need the route because we need an access to the route parameters in order to get the other user Id from the query
   private route = inject(ActivatedRoute);
   // protected messages = signal<Message[]>([]); // The messages will come from the messages service that implements the SignalR
-  protected messageContent = '';
+  protected messageContent = model('');
 
   constructor() {
     effect(() => {
@@ -88,10 +89,11 @@ export class MemberMessages implements OnInit, OnDestroy {
       });
     }
     */
-    if (!recipientId) return;
+    // Using SignalR to send the message. If we do not have recipientId or message content we will not send the message
+    if (!recipientId || !this.messageContent()) return;
     // After sending the message reset the message content so next time we will not get it again, concatenated to the new message
-    this.messageService.sendMessage(recipientId, this.messageContent)?.then(() => {
-      this.messageContent = '';
+    this.messageService.sendMessage(recipientId, this.messageContent())?.then(() => {
+      this.messageContent.set('');
     });
   }
 
