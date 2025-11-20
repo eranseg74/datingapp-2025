@@ -33,6 +33,8 @@ new IdentityRole { Id = "admin-id", Name = "Admin", NormalizedName = "ADMIN" }
     // Since we did not defined a primary key in the MemberLike table the primary key will be a combination of both the source member ID and the target member ID, using the HasKey method
     modelBuilder.Entity<MemberLike>().HasKey(x => new { x.SourceMemberId, x.TargetMemberId });
 
+    modelBuilder.Entity<Photo>().HasQueryFilter(x => x.IsApproved);
+
     modelBuilder.Entity<Message>()
       .HasOne(s => s.Recipient)
       .WithMany(m => m.MessagesReceived)

@@ -63,6 +63,7 @@ public class Seed
       {
         Url = member.ImageUrl!,
         MemberId = member.Id,
+        IsApproved = true,
       });
       // context.Users.Add(user);
       // Adding the user in ASPNet is implemented be the CreateAsync function. The function returns an IdentityResult.

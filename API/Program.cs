@@ -115,6 +115,11 @@ app.UseCors(options =>
 app.UseAuthentication(); // Asks the question - "Who are you?"
 app.UseAuthorization(); // Once we know who they are, what are they allow to do. This means that the order is important. First add the authentication middleware and only after that the authorization middleware. Otherwise it will not work
 
+// Serving static files such as the index.html file. When running the build command in Angular it will create a folder called wwwroot in the API project which will contain all the static files needed to run the Angular application
+app.UseDefaultFiles(); // This will look for default files such as index.html inside the wwwroot folder
+app.UseStaticFiles(); // This will serve the static files such as the index.html file. This is a middleware that will look for static files in the wwwroot folder by default
+app.MapFallbackToController("Index", "Fallback"); // This will forward all the requests that are not handled by any other controller to the Fallback controller. This has to be after the UseStaticFiles middleware because we want to first check if the request is for a static file such as index.html and only if it is not found there we want to forward it to the Fallback controller. The first parameter is the action name and the second parameter is the controller name without the "Controller" suffix
+
 app.MapControllers();
 // Adding middleware to the hub
 app.MapHub<PresenceHub>("hubs/presence"); // All the requests with the following path will be indirected to the hub SignalR

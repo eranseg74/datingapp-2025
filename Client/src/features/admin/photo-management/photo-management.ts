@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { AdminService } from '../../../core/services/admin-service';
+import { Photo } from '../../../types/member';
 
 @Component({
   selector: 'app-photo-management',
@@ -6,6 +8,37 @@ import { Component } from '@angular/core';
   templateUrl: './photo-management.html',
   styleUrl: './photo-management.css',
 })
-export class PhotoManagement {
+export class PhotoManagement implements OnInit {
+  private adminService = inject(AdminService);
+  protected photosForApproval = signal<Photo[]>([]);
 
+  ngOnInit(): void {
+    this.getPhotosForApproval();
+  }
+
+  getPhotosForApproval() {
+    this.adminService.getPhotosForApproval().subscribe({
+      next: (photos) => this.photosForApproval.set(photos),
+    });
+  }
+
+  approvePhoto(photoId: number) {
+    this.adminService.approvePhoto(photoId).subscribe({
+      next: () => {
+        this.photosForApproval.update((photos) => {
+          return photos.filter((x) => x.id !== photoId);
+        });
+      },
+    });
+  }
+
+  rejectPhoto(photoId: number) {
+    this.adminService.rejectPhoto(photoId).subscribe({
+      next: () => {
+        this.photosForApproval.update((photos) => {
+          return photos.filter((x) => x.id !== photoId);
+        });
+      },
+    });
+  }
 }

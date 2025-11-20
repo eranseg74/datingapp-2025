@@ -1,7 +1,8 @@
 import { HttpEvent, HttpInterceptorFn, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { BusyService } from '../services/busy-service';
-import { delay, finalize, of, tap } from 'rxjs';
+import { delay, finalize, identity, of, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 // We want to cache GET requests. The string here will be the request URL
 const cache = new Map<string, HttpEvent<unknown>>();
@@ -60,7 +61,8 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
 
   busyService.busy();
   return next(req).pipe(
-    delay(500),
+    // Adding a delay only in development mode to simulate loading time. The identity function just returns the response as is without any modification. We use this because the delay operator needs to get an Observable and we cannot provide null or undefined
+    environment.production ? identity : delay(500), // This is a fake delay. Need to make sure to remove it before loading to production
     tap((response) => {
       cache.set(cacheKey, response); // The response here is of type HttpEvent
     }),

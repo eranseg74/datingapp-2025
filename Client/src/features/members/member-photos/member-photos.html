@@ -3,11 +3,18 @@
   <!-- A loop for mock photos in the member photos under the member details -->
   @for (photo of photos; track photo.id) {
   <div class="relative">
-    <img src="{{ photo.url }}" alt="photo of member" class="w-full rounded-lg" />
-    @if (accountService.currentUser()?.id === memberService.member()?.id) {
+    <img
+      src="{{ photo.url }}"
+      alt="photo of member"
+      class="w-full rounded-lg"
+      [class.opacity-30]="!photo.isApproved"
+    />
+    @if (!photo.isApproved) {
+    <div class="absolute bottom-2 badge badge-outline badge-error">Awaiting approval</div>
+    } @if (accountService.currentUser()?.id === memberService.member()?.id) {
 
     <app-star-button
-      [disabled]="photo.url === memberService.member()?.imageUrl"
+      [disabled]="photo.url === memberService.member()?.imageUrl || !photo.isApproved"
       [selected]="photo.url === memberService.member()?.imageUrl"
       (clickEvent)="setMainPhoto(photo)"
       class="absolute top-1 right-1"
